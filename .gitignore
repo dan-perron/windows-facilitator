@@ -1,0 +1,6 @@
+# Ignore config files with secrets
+config.env
+.env 
+.venv/ 
+debug/
+__pycache__/
