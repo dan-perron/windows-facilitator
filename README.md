@@ -101,22 +101,3 @@ If you see errors like:
 Make sure you used Task Scheduler and selected **Run only when user is logged on**. The app must run in your interactive session to see the OOTP window.
 
 ---
-
-#### Troubleshooting: Installing numpy on Windows
-
-If you encounter errors when installing `numpy` with pip (such as build failures or missing compilers), you can install numpy using Chocolatey:
-
-```
-choco install numpy
-```
-
-After installing numpy with Chocolatey, retry installing opencv-python:
-
-```
-pip install opencv-python
-```
-
-This can help resolve issues with building numpy from source on Windows systems.
-
-## Security
-- **Never check your `config.env`
