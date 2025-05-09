@@ -1,0 +1,32 @@
+from flask import request, jsonify
+from agent.service import find_and_click, simulate_ootp_workflow
+from agent.commish_config import CommishHomeCheckboxConfig
+
+def register_routes(app):
+    @app.route("/click", methods=["POST"])
+    def click():
+        data = request.get_json()
+        x = data.get("x")
+        y = data.get("y")
+        if x is None or y is None:
+            return jsonify({"status": "error", "message": "Missing coordinates"}), 400
+        try:
+            import pyautogui
+            pyautogui.click(x, y)
+            return jsonify({"status": "clicked", "x": x, "y": y})
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)}), 500
+
+    @app.route("/health", methods=["GET"])
+    def health():
+        return jsonify({"status": "ok"})
+
+    @app.route("/simulate", methods=["POST"])
+    def simulate():
+        data = request.get_json() or {}
+        app.logger.info(f"Received /simulate body: {data}")
+        checkboxes = data.get("commish_checkboxes", {})
+        manual_import_teams = data.get("manual_import_teams", False)
+        config = CommishHomeCheckboxConfig(**checkboxes)
+        result, status = simulate_ootp_workflow(config, manual_import_teams)
+        return jsonify(result), status 

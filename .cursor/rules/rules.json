@@ -1,0 +1,21 @@
+{
+    "rules": [
+        {
+            "name": "rules-location",
+            "description": "All rules must be stored in the .cursor/rules directory",
+            "pattern": "**/*.json",
+            "location": ".cursor/rules",
+            "severity": "error"
+        },
+        {
+            "name": "virtual-env-usage",
+            "description": "Project must use .venv virtual environment for building and running",
+            "pattern": "**/*.{py,ps1,bat}",
+            "requirements": {
+                "virtual_env": ".venv",
+                "activation_required": true
+            },
+            "severity": "error"
+        }
+    ]
+} 

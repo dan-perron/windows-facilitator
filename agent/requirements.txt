@@ -1,0 +1,4 @@
+flask
+pyautogui
+pillow==10.2.0
+opencv-python
