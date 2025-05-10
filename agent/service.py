@@ -171,13 +171,14 @@ def set_textbox_relative_to_checkbox(checkbox_image, x_offset, y_offset, value, 
     else:
         logger.warning(f"Checkbox image not found for textbox anchor: {checkbox_image}")
 
-def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False):
+def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, backup_league_folder=True):
     window = pyautogui.getWindowsWithTitle("Out of the Park Baseball 25")
     if not window:
         logger.error("OOTP window not found at start of simulate_ootp_workflow.")
         return {"status": "error", "message": "Could not find OOTP window"}, 404
     try:
-        backup_manager.backup_with_slack(slack_notifier)
+        if backup_league_folder:
+            backup_manager.backup_with_slack(slack_notifier)
         logger.info(f"manual_import_teams: {manual_import_teams}")
         window = window[0]
         # Handle minimized state
