@@ -247,7 +247,8 @@ def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False):
         logger.error("OOTP window not found at start of simulate_ootp_workflow.")
         return {"status": "error", "message": "Could not find OOTP window"}, 404
     try:
-        backup_manager.backup_with_slack(slack_notifier)
+        if backup_league_folder:
+            backup_manager.backup_with_slack(slack_notifier)
         logger.info(f"manual_import_teams: {manual_import_teams}")
         window = window[0]
         # Handle minimized state
