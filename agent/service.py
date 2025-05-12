@@ -42,7 +42,7 @@ debug_manager = DebugScreenshotManager(DEBUG_DIR, slack_notifier=slack_notifier)
 backup_manager = BackupManager(BACKUP_SOURCE, BACKUP_ROOT)
 checkbox_interactor = CheckboxInteractor(os.path.join(IMAGES_DIR, 'commish_home_checkboxes'), debug_manager)
 
-def find_and_click(image_name, confidence=0.75, timeout=10):
+def find_and_click(image_name, confidence=0.75, timeout=10, verify_click=True):
     image_path = os.path.join(IMAGES_DIR, image_name)
     logger.info(f"Attempting to click image: {image_name}")
     if not os.path.exists(image_path):
@@ -171,6 +171,76 @@ def set_textbox_relative_to_checkbox(checkbox_image, x_offset, y_offset, value, 
     else:
         logger.warning(f"Checkbox image not found for textbox anchor: {checkbox_image}")
 
+def click_and_verify_next(image_name, next_image_name, max_retries=3, confidence=0.75):
+    """
+    Attempts to click an image and verify the next expected image is visible.
+    Returns True if successful, False if all retries failed.
+    """
+    for attempt in range(max_retries):
+        if find_and_click(image_name):
+            time.sleep(2)
+            if pyautogui.locateOnScreen(os.path.join(IMAGES_DIR, next_image_name), confidence=confidence):
+                logger.info(f"Successfully verified {image_name} click - {next_image_name} is visible")
+                return True
+            else:
+                logger.warning(f"{image_name} click attempt {attempt + 1}/{max_retries} - {next_image_name} not visible")
+                if attempt < max_retries - 1:
+                    time.sleep(1)
+                    continue
+        if attempt == max_retries - 1:
+            logger.error(f"Failed to verify {image_name} click after {max_retries} attempts")
+            return False
+    return False
+
+def click_and_verify_screen_change(image_name, max_retries=3, confidence=0.75, change_threshold=0.1):
+    """
+    Attempts to click an image and verify the screen has changed.
+    Returns True if successful, False if all retries failed.
+    
+    Args:
+        image_name: Name of the image to click
+        max_retries: Number of retry attempts
+        confidence: Confidence level for image matching
+        change_threshold: Minimum amount of screen change required (0-1)
+    """
+    for attempt in range(max_retries):
+        # Take screenshot before click
+        before_screenshot = get_window_screenshot()
+        if before_screenshot is None:
+            logger.warning(f"Could not get screenshot before click attempt {attempt + 1}")
+            continue
+
+        if find_and_click(image_name):
+            time.sleep(2)  # Wait for screen to update
+            
+            # Take screenshot after click
+            after_screenshot = get_window_screenshot()
+            if after_screenshot is None:
+                logger.warning(f"Could not get screenshot after click attempt {attempt + 1}")
+                continue
+
+            # Convert screenshots to numpy arrays for comparison
+            before_array = np.array(before_screenshot)
+            after_array = np.array(after_screenshot)
+
+            # Calculate difference
+            diff = np.mean(np.abs(before_array.astype(float) - after_array.astype(float)))
+            change_percentage = diff / 255.0  # Normalize to 0-1 range
+
+            if change_percentage > change_threshold:
+                logger.info(f"Successfully verified {image_name} click - screen changed by {change_percentage:.2%}")
+                return True
+            else:
+                logger.warning(f"{image_name} click attempt {attempt + 1}/{max_retries} - screen change too small ({change_percentage:.2%})")
+                if attempt < max_retries - 1:
+                    time.sleep(1)
+                    continue
+
+        if attempt == max_retries - 1:
+            logger.error(f"Failed to verify {image_name} click after {max_retries} attempts")
+            return False
+    return False
+
 def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False):
     window = pyautogui.getWindowsWithTitle("Out of the Park Baseball 25")
     if not window:
@@ -188,8 +258,11 @@ def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False):
             window.activate()
             time.sleep(0.5)
         time.sleep(1)
-        if not find_and_click("comish_home.png"):
-            return {"status": "error", "message": "Could not find Commish Home Page button"}, 404
+
+        # Click Commish Home and verify Check Team Exports is visible
+        if not click_and_verify_next("comish_home.png", "check_team_exports.png"):
+            return {"status": "error", "message": "Could not verify Commish Home Page navigation"}, 404
+
         time.sleep(2)
         # Set checkboxes according to config
         if checkbox_config is None:
@@ -207,25 +280,35 @@ def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False):
             x_offset=550, y_offset=0, value=checkbox_config.auto_play_days_value
         )
         time.sleep(1)
+
         if manual_import_teams:
-            if not find_and_click("check_team_exports.png"):
-                return {"status": "error", "message": "Could not find Check Team Exports button"}, 404
-            time.sleep(2)
-            if not find_and_click("import_all_teams.png"):
-                return {"status": "error", "message": "Could not find Import All Teams button"}, 404
-            time.sleep(1)
-            if not find_and_click("start_download.png"):
-                return {"status": "error", "message": "Could not find Download All button"}, 404
+            # Click Check Team Exports and verify Import All Teams is visible
+            if not click_and_verify_next("check_team_exports.png", "import_all_teams.png"):
+                return {"status": "error", "message": "Could not verify Check Team Exports navigation"}, 404
+
+            # Click Import All Teams and verify Start Download is visible
+            if not click_and_verify_next("import_all_teams.png", "start_download.png"):
+                return {"status": "error", "message": "Could not verify Import All Teams navigation"}, 404
+
+            # Click Start Download and verify Cancel is visible
+            if not click_and_verify_next("start_download.png", "cancel.png"):
+                return {"status": "error", "message": "Could not verify Start Download navigation"}, 404
+
             logger.info("Waiting for download to complete (up to 60 seconds)...")
             time.sleep(60)
-            if not find_and_click("cancel.png"):
-                return {"status": "error", "message": "Could not find Cancel button"}, 404
-            time.sleep(1)
-            if not find_and_click("comish_home.png"):
-                return {"status": "error", "message": "Could not find Commish Home Page button"}, 404
-        # Final step: click the 'execute' button
-        if not find_and_click("execute.png"):
-            return {"status": "error", "message": "Could not find Execute button"}, 404
+
+            # Click Cancel and verify Commish Home is visible
+            if not click_and_verify_next("cancel.png", "comish_home.png"):
+                return {"status": "error", "message": "Could not verify Cancel navigation"}, 404
+
+            # Click Commish Home again and verify Execute is visible
+            if not click_and_verify_next("comish_home.png", "execute.png"):
+                return {"status": "error", "message": "Could not verify Commish Home navigation"}, 404
+
+        # Final step: click the 'execute' button and verify screen changes
+        if not click_and_verify_screen_change("execute.png"):
+            return {"status": "error", "message": "Could not verify Execute button click"}, 404
+
         return {"status": "success", "message": "Simulation started"}, 200
     except Exception as e:
         error_message = f"Error during simulation: {str(e)}"
