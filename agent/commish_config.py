@@ -4,7 +4,7 @@ class CommishHomeCheckboxConfig:
         retrieve_team_exports_from_server=True,
         retrieve_team_exports_from_your_pc=False,
         break_if_team_files_are_missing=False,
-        break_if_trades_are_pending=False,
+        break_if_trades_are_pending=True,
         demote_release_players_with_dfa_time_left_of_x_days_or_less=False,
         auto_play_days=True,
         create_and_upload_league_file=True,
