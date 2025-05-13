@@ -53,7 +53,7 @@ class CheckboxInteractor:
             self.logger.info(f"Clicking to check '{attr}' at center ({center_x}, {center_y})")
             pyautogui.moveTo(center_x, center_y)
             time.sleep(0.1)
-            pyautogui.click()
+            pyautogui.click(duration=0.5)
             self.debug_manager.save(
                 screenshot, center_x, center_y,
                 label=f"{attr}_checked", action="check",
@@ -68,7 +68,7 @@ class CheckboxInteractor:
             self.logger.info(f"Clicking to uncheck '{attr}' at center ({center_x}, {center_y})")
             pyautogui.moveTo(center_x, center_y)
             time.sleep(0.1)
-            pyautogui.click()
+            pyautogui.click(duration=0.5)
             self.debug_manager.save(
                 screenshot, center_x, center_y,
                 label=f"{attr}_unchecked", action="uncheck",
