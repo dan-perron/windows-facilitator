@@ -241,7 +241,7 @@ def click_and_verify_screen_change(image_name, max_retries=3, confidence=0.75, c
             return False
     return False
 
-def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False):
+def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, backup_league_folder=False):
     window = pyautogui.getWindowsWithTitle("Out of the Park Baseball 25")
     if not window:
         logger.error("OOTP window not found at start of simulate_ootp_workflow.")
