@@ -3,12 +3,11 @@ import shutil
 from datetime import datetime
 import logging
 from agent.slack_notifier import SlackNotifier
+from agent.config import BACKUP_SOURCE, BACKUP_ROOT, BACKUP_DAILY_LIMIT, BACKUP_WEEKLY_LIMIT
+from dotenv import load_dotenv
 
-# Backup configuration
-BACKUP_SOURCE = r'C:\Users\djper\OneDrive\Documents\Out of the Park Developments\OOTP Baseball 25\saved_games\Cheeseburger Automated.lg'
-BACKUP_ROOT = os.path.expanduser(r'~\Documents\ootp_backups')
-BACKUP_DAILY_LIMIT = 30
-BACKUP_WEEKLY_LIMIT = 13
+# Load environment variables
+load_dotenv('config.env')
 
 class BackupManager:
     def __init__(self, source=BACKUP_SOURCE, backup_root=BACKUP_ROOT, daily_limit=BACKUP_DAILY_LIMIT, weekly_limit=BACKUP_WEEKLY_LIMIT):

@@ -2,12 +2,13 @@ import os
 import logging
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+from agent.config import SLACK_BOT_TOKEN, SLACK_CHANNEL
 
 class SlackNotifier:
     def __init__(self, slack_token=None, slack_channel=None):
         self.logger = logging.getLogger(__name__)
-        self.slack_token = slack_token or os.environ.get("SLACK_BOT_TOKEN")
-        self.slack_channel = slack_channel or os.environ.get("SLACK_CHANNEL")
+        self.slack_token = slack_token or SLACK_BOT_TOKEN
+        self.slack_channel = slack_channel or SLACK_CHANNEL
         self.client = None
         if self.slack_token:
             self.client = WebClient(token=self.slack_token)
