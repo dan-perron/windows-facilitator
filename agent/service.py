@@ -234,7 +234,7 @@ def click_and_verify_screen_change(image_name, max_retries=3, confidence=0.75, c
             return False
     return False
 
-def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, backup_league_folder=False):
+def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, backup_league_folder=False, dry_run=False):
     window = pyautogui.getWindowsWithTitle("Out of the Park Baseball 25")
     if not window:
         logger.error("OOTP window not found at start of simulate_ootp_workflow.")
@@ -243,6 +243,7 @@ def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, back
         if backup_league_folder:
             backup_manager.backup_with_slack(slack_notifier)
         logger.info(f"manual_import_teams: {manual_import_teams}")
+        logger.info(f"dry_run: {dry_run}")
         window = window[0]
         # Handle minimized state
         if hasattr(window, "isMinimized") and window.isMinimized:
@@ -300,10 +301,12 @@ def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, back
                 return {"status": "error", "message": "Could not verify Commish Home navigation"}, 404
 
         # Final step: click the 'execute' button and verify screen changes
-        if not click_and_verify_screen_change("execute.png"):
-            return {"status": "error", "message": "Could not verify Execute button click"}, 404
-
-        return {"status": "success", "message": "Simulation started"}, 200
+        if not dry_run:
+            if not click_and_verify_screen_change("execute.png"):
+                return {"status": "error", "message": "Could not verify Execute button click"}, 404
+            return {"status": "success", "message": "Simulation completed"}, 200
+        else:
+            return {"status": "success", "message": "Dry run completed - all steps verified but execute button not clicked"}, 200
     except Exception as e:
         error_message = f"Error during simulation: {str(e)}"
         error_type = f"Exception type: {type(e)}"
