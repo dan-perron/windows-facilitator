@@ -68,7 +68,7 @@ def find_and_click(image_name, confidence=0.75, timeout=10, verify_click=True):
                 center = pyautogui.center(location)
                 pyautogui.moveTo(center)
                 time.sleep(0.1)
-                pyautogui.click(center)
+                pyautogui.click(center, duration=0.5)
                 # Save debug screenshot with red dot at click location
                 try:
                     debug_screenshot = get_window_screenshot()
