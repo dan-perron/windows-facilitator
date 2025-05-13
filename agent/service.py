@@ -30,16 +30,12 @@ logger.info(f"Images directory: {IMAGES_DIR}")
 DEBUG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'debug')
 os.makedirs(DEBUG_DIR, exist_ok=True)
 
-BACKUP_SOURCE = r'C:\Users\djper\OneDrive\Documents\Out of the Park Developments\OOTP Baseball 25\saved_games\Cheeseburger Failure.lg'
-BACKUP_ROOT = os.path.expanduser(r'~\Documents\ootp_backups')
-BACKUP_DAILY_LIMIT = 30
-BACKUP_WEEKLY_LIMIT = 13
 MAX_DEBUG_SCREENSHOTS = 100
 
 # Set up managers
 slack_notifier = SlackNotifier()
 debug_manager = DebugScreenshotManager(DEBUG_DIR, slack_notifier=slack_notifier)
-backup_manager = BackupManager(BACKUP_SOURCE, BACKUP_ROOT)
+backup_manager = BackupManager()
 checkbox_interactor = CheckboxInteractor(os.path.join(IMAGES_DIR, 'commish_home_checkboxes'), debug_manager)
 
 def find_and_click(image_name, confidence=0.75, timeout=10, verify_click=True):

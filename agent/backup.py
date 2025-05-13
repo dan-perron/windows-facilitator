@@ -4,8 +4,14 @@ from datetime import datetime
 import logging
 from agent.slack_notifier import SlackNotifier
 
+# Backup configuration
+BACKUP_SOURCE = r'C:\Users\djper\OneDrive\Documents\Out of the Park Developments\OOTP Baseball 25\saved_games\Cheeseburger Automated.lg'
+BACKUP_ROOT = os.path.expanduser(r'~\Documents\ootp_backups')
+BACKUP_DAILY_LIMIT = 30
+BACKUP_WEEKLY_LIMIT = 13
+
 class BackupManager:
-    def __init__(self, source, backup_root, daily_limit=30, weekly_limit=13):
+    def __init__(self, source=BACKUP_SOURCE, backup_root=BACKUP_ROOT, daily_limit=BACKUP_DAILY_LIMIT, weekly_limit=BACKUP_WEEKLY_LIMIT):
         self.source = source
         self.backup_root = backup_root
         self.daily_limit = daily_limit
