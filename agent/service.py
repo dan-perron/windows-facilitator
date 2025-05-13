@@ -149,7 +149,7 @@ def set_textbox_relative_to_checkbox(checkbox_image, x_offset, y_offset, value, 
         center = pyautogui.center(location)
         textbox_pos = (center.x + x_offset, center.y + y_offset)
         logger.info(f"Clicking form field at {textbox_pos} (relative to anchor {checkbox_image}) and setting value '{value}'")
-        pyautogui.click(textbox_pos)
+        pyautogui.click(textbox_pos, duration=0.5)
         screenshot = get_window_screenshot()
         debug_manager.save(
             screenshot, textbox_pos[0], textbox_pos[1],
