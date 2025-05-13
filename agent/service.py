@@ -69,20 +69,17 @@ def find_and_click(image_name, confidence=0.75, timeout=10, verify_click=True):
                 pyautogui.moveTo(center)
                 time.sleep(0.1)
                 pyautogui.click(center)
-                # Save debug screenshot with red dot at click location (optional, can be commented out if not needed)
+                # Save debug screenshot with red dot at click location
                 try:
                     debug_screenshot = get_window_screenshot()
                     if debug_screenshot is not None:
-                        debug_img = debug_screenshot.copy()
-                        from PIL import ImageDraw
-                        draw = ImageDraw.Draw(debug_img)
-                        r = 10
-                        draw.ellipse((center.x - r, center.y - r, center.x + r, center.y + r), fill='red', outline='red')
-                        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-                        debug_filename = os.path.join(DEBUG_DIR, f"{timestamp}_click_debug.png")
-                        debug_img.save(debug_filename)
+                        debug_manager.save(
+                            debug_screenshot, center.x, center.y,
+                            label=image_name, action="click",
+                            slack_message=f"Clicked {image_name} at ({center.x}, {center.y})"
+                        )
                 except Exception as e:
-                    pass  # Ignore debug screenshot errors
+                    logger.warning(f"Failed to save debug click image: {e}")
                 logger.info(f"Clicked image: {image_name} at ({center.x}, {center.y})")
                 return True
         except Exception as e:
