@@ -237,8 +237,9 @@ def click_and_verify_screen_change(image_name, max_retries=3, confidence=0.75, c
 def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, backup_league_folder=False, dry_run=False):
     window = pyautogui.getWindowsWithTitle("Out of the Park Baseball 25")
     if not window:
-        logger.error("OOTP window not found at start of simulate_ootp_workflow.")
-        return {"status": "error", "message": "Could not find OOTP window"}, 404
+        error_msg = "OOTP window not found at start of simulate_ootp_workflow."
+        logger.error(error_msg)
+        return {"status": "error", "message": error_msg, "details": "Could not find OOTP window"}, 404
     try:
         if backup_league_folder:
             backup_manager.backup_with_slack(slack_notifier)
@@ -256,13 +257,25 @@ def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, back
 
         # Click Commish Home and verify Check Team Exports is visible
         if not click_and_verify_next("comish_home.png", "check_team_exports.png"):
-            return {"status": "error", "message": "Could not verify Commish Home Page navigation"}, 404
+            error_msg = "Could not verify Commish Home Page navigation"
+            logger.error(error_msg)
+            return {"status": "error", "message": error_msg, "details": "Failed to navigate to Commish Home page"}, 404
 
         time.sleep(2)
         # Set checkboxes according to config
         if checkbox_config is None:
             checkbox_config = CommishHomeCheckboxConfig()
-        set_commish_home_checkboxes(checkbox_config)
+        try:
+            set_commish_home_checkboxes(checkbox_config)
+        except RuntimeError as e:
+            error_msg = str(e)
+            logger.error(error_msg)
+            return {"status": "error", "message": "Failed to set checkbox states", "details": error_msg}, 400
+        except Exception as e:
+            error_msg = f"Unexpected error setting checkboxes: {str(e)}"
+            logger.error(error_msg)
+            return {"status": "error", "message": "Failed to set checkbox states", "details": error_msg}, 500
+
         time.sleep(1)
         # Set DFA days textbox (anchor: demote_release_players_with_dfa_time_left_of_x_days_or_less)
         set_textbox_relative_to_checkbox(
@@ -279,31 +292,43 @@ def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, back
         if manual_import_teams:
             # Click Check Team Exports and verify Import All Teams is visible
             if not click_and_verify_next("check_team_exports.png", "import_all_teams.png"):
-                return {"status": "error", "message": "Could not verify Check Team Exports navigation"}, 404
+                error_msg = "Could not verify Check Team Exports navigation"
+                logger.error(error_msg)
+                return {"status": "error", "message": error_msg, "details": "Failed to navigate to Check Team Exports page"}, 404
 
             # Click Import All Teams and verify Start Download is visible
             if not click_and_verify_next("import_all_teams.png", "start_download.png"):
-                return {"status": "error", "message": "Could not verify Import All Teams navigation"}, 404
+                error_msg = "Could not verify Import All Teams navigation"
+                logger.error(error_msg)
+                return {"status": "error", "message": error_msg, "details": "Failed to navigate to Import All Teams page"}, 404
 
             # Click Start Download and verify Cancel is visible
             if not click_and_verify_next("start_download.png", "cancel.png"):
-                return {"status": "error", "message": "Could not verify Start Download navigation"}, 404
+                error_msg = "Could not verify Start Download navigation"
+                logger.error(error_msg)
+                return {"status": "error", "message": error_msg, "details": "Failed to navigate to Start Download page"}, 404
 
             logger.info("Waiting for download to complete (up to 60 seconds)...")
             time.sleep(60)
 
             # Click Cancel and verify Commish Home is visible
             if not click_and_verify_next("cancel.png", "comish_home.png"):
-                return {"status": "error", "message": "Could not verify Cancel navigation"}, 404
+                error_msg = "Could not verify Cancel navigation"
+                logger.error(error_msg)
+                return {"status": "error", "message": error_msg, "details": "Failed to navigate back to Commish Home page"}, 404
 
             # Click Commish Home again and verify Execute is visible
             if not click_and_verify_next("comish_home.png", "execute.png"):
-                return {"status": "error", "message": "Could not verify Commish Home navigation"}, 404
+                error_msg = "Could not verify Commish Home navigation"
+                logger.error(error_msg)
+                return {"status": "error", "message": error_msg, "details": "Failed to navigate to final Commish Home page"}, 404
 
         # Final step: click the 'execute' button and verify screen changes
         if not dry_run:
             if not click_and_verify_screen_change("execute.png"):
-                return {"status": "error", "message": "Could not verify Execute button click"}, 404
+                error_msg = "Could not verify Execute button click"
+                logger.error(error_msg)
+                return {"status": "error", "message": error_msg, "details": "Failed to execute the final action"}, 404
             return {"status": "success", "message": "Simulation completed"}, 200
         else:
             return {"status": "success", "message": "Dry run completed - all steps verified but execute button not clicked"}, 200
@@ -319,4 +344,8 @@ def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, back
             f"*Simulation Error:*\n"
             f"{error_message}\n{error_type}\n```{error_trace}```"
         )
-        return {"status": "error", "message": str(e)}, 500 
+        return {
+            "status": "error",
+            "message": error_message,
+            "details": f"{error_type}\n{error_trace}"
+        }, 500 
