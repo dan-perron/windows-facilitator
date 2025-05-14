@@ -139,9 +139,21 @@ def save_debug_click_screenshot(x, y, label=None, action=None):
 
 def set_commish_home_checkboxes(config: CommishHomeCheckboxConfig, confidence=0.95, timeout=8):
     screenshot = get_window_screenshot()
+    if screenshot is None:
+        error_msg = "Failed to get window screenshot"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
+        
     for attr, base_name in CHECKBOX_IMAGE_MAP.items():
         desired = getattr(config, attr)
-        checkbox_interactor.set_checkbox_state(screenshot, attr, base_name, desired)
+        try:
+            checkbox_interactor.set_checkbox_state(screenshot, attr, base_name, desired)
+        except RuntimeError as e:
+            # Re-raise with more context
+            raise RuntimeError(f"Failed to set checkbox state for {attr}: {str(e)}") from e
+        except Exception as e:
+            # Re-raise with more context
+            raise RuntimeError(f"Unexpected error setting checkbox state for {attr}: {str(e)}") from e
 
 def set_textbox_relative_to_checkbox(checkbox_image, x_offset, y_offset, value, confidence=0.85):
     location = pyautogui.locateOnScreen(checkbox_image, confidence=confidence)

@@ -29,6 +29,14 @@ def register_routes(app):
         manual_import_teams = data.get("manual_import_teams", False)
         backup_league_folder = data.get("backup_league_folder", True)
         dry_run = data.get("dry_run", False)
-        config = CommishHomeCheckboxConfig(**checkboxes)
-        result, status = simulate_ootp_workflow(config, manual_import_teams, backup_league_folder, dry_run)
-        return jsonify(result), status 
+        try:
+            config = CommishHomeCheckboxConfig(**checkboxes)
+            result, status = simulate_ootp_workflow(config, manual_import_teams, backup_league_folder, dry_run)
+            return jsonify(result), status
+        except Exception as e:
+            error_message = str(e)
+            app.logger.error(f"Error in simulate endpoint: {error_message}")
+            return jsonify({
+                "status": "error",
+                "message": error_message
+            }), 500 
