@@ -17,7 +17,7 @@ import threading
 import hashlib
 from agent.slack_notifier import SlackNotifier
 from agent.ootp_screenshot_monitor import OOTPScreenshotMonitor
-from agent.screenshot_utils import get_window_screenshot
+from agent.pyautogui_utils import get_window_screenshot, get_window
 import traceback
 
 # Configure logging
@@ -247,9 +247,9 @@ def click_and_verify_screen_change(image_name, max_retries=3, confidence=0.75, c
     return False
 
 def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, backup_league_folder=False, dry_run=False):
-    window = pyautogui.getWindowsWithTitle("Out of the Park Baseball 25")
-    if not window:
-        error_msg = "OOTP window not found at start of simulate_ootp_workflow."
+    window, message = get_window()
+    if window is None:
+        error_msg = f"OOTP window not found at start of simulate_ootp_workflow: {message}"
         logger.error(error_msg)
         return {"status": "error", "message": error_msg, "details": "Could not find OOTP window"}, 404
     try:
@@ -257,14 +257,6 @@ def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, back
             backup_manager.backup_with_slack(slack_notifier)
         logger.info(f"manual_import_teams: {manual_import_teams}")
         logger.info(f"dry_run: {dry_run}")
-        window = window[0]
-        # Handle minimized state
-        if hasattr(window, "isMinimized") and window.isMinimized:
-            window.restore()
-            time.sleep(0.5)
-        if not window.isActive:
-            window.activate()
-            time.sleep(0.5)
         time.sleep(1)
 
         # Click Commish Home and verify Check Team Exports is visible
@@ -361,3 +353,11 @@ def simulate_ootp_workflow(checkbox_config=None, manual_import_teams=False, back
             "message": error_message,
             "details": f"{error_type}\n{error_trace}"
         }, 500 
+
+def check_ootp_window():
+    """
+    Checks if the OOTP window exists and is active.
+    Returns a tuple of (success, message) where success is a boolean.
+    """
+    window, message = get_window()
+    return window is not None, message 

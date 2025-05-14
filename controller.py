@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from agent.service import find_and_click, simulate_ootp_workflow
+from agent.service import find_and_click, simulate_ootp_workflow, check_ootp_window
 from agent.commish_config import CommishHomeCheckboxConfig
 
 def register_routes(app):
@@ -19,7 +19,10 @@ def register_routes(app):
 
     @app.route("/health", methods=["GET"])
     def health():
-        return jsonify({"status": "ok"})
+        success, message = check_ootp_window()
+        if success:
+            return jsonify({"status": "ok", "message": message})
+        return jsonify({"status": "error", "message": message}), 503
 
     @app.route("/simulate", methods=["POST"])
     def simulate():
