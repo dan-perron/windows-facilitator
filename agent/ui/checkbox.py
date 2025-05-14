@@ -14,9 +14,17 @@ class CheckboxInteractor:
         self.logger = logging.getLogger(__name__)
 
     def get_template_match_confidence(self, screenshot, template_path):
+        if not os.path.exists(template_path):
+            error_msg = f"Required image file not found: {template_path}"
+            self.logger.error(error_msg)
+            raise FileNotFoundError(error_msg)
+            
         template = cv2.imread(template_path, cv2.IMREAD_GRAYSCALE)
         if template is None:
-            return None, 0.0, (0, 0)
+            error_msg = f"Failed to load image file: {template_path}"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+            
         screenshot_gray = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2GRAY)
         res = cv2.matchTemplate(screenshot_gray, template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
@@ -26,8 +34,15 @@ class CheckboxInteractor:
         checked_img = os.path.join(self.image_dir, f"{base_name}_checked.png")
         unchecked_img = os.path.join(self.image_dir, f"{base_name}_unchecked.png")
 
-        checked_loc, checked_conf, checked_shape = self.get_template_match_confidence(screenshot, checked_img)
-        unchecked_loc, unchecked_conf, unchecked_shape = self.get_template_match_confidence(screenshot, unchecked_img)
+        try:
+            checked_loc, checked_conf, checked_shape = self.get_template_match_confidence(screenshot, checked_img)
+            unchecked_loc, unchecked_conf, unchecked_shape = self.get_template_match_confidence(screenshot, unchecked_img)
+        except FileNotFoundError as e:
+            self.logger.error(f"Missing required checkbox image for {attr}: {str(e)}")
+            raise RuntimeError(f"Missing required checkbox image for {attr}. Please ensure both checked and unchecked versions exist.") from e
+        except ValueError as e:
+            self.logger.error(f"Failed to load checkbox image for {attr}: {str(e)}")
+            raise RuntimeError(f"Failed to load checkbox image for {attr}. The image file may be corrupted.") from e
 
         if checked_conf > unchecked_conf and checked_conf >= self.confidence:
             current_state = 'checked'
