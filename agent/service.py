@@ -17,7 +17,10 @@ import threading
 import hashlib
 from agent.slack_notifier import SlackNotifier
 from agent.ootp_screenshot_monitor import OOTPScreenshotMonitor
-from agent.pyautogui_utils import get_window_screenshot, get_window
+from agent.pyautogui_utils import (
+    get_window_screenshot, get_window, locate_on_screen,
+    click_at, click_center, set_textbox_value
+)
 import traceback
 
 # Configure logging
@@ -56,28 +59,23 @@ def find_and_click(image_name, confidence=0.75, timeout=10, verify_click=True):
             if screenshot is None:
                 time.sleep(0.5)
                 continue
-            try:
-                location = pyautogui.locateOnScreen(ref_img_pil, confidence=confidence)
-            except pyscreeze.ImageNotFoundException:
-                location = None
+            location = locate_on_screen(ref_img_pil, confidence=confidence)
             if location:
-                center = pyautogui.center(location)
-                pyautogui.moveTo(center)
-                time.sleep(0.1)
-                pyautogui.click(center, duration=0.5)
-                # Save debug screenshot with red dot at click location
-                try:
-                    debug_screenshot = get_window_screenshot()
-                    if debug_screenshot is not None:
-                        debug_manager.save(
-                            debug_screenshot, center.x, center.y,
-                            label=image_name, action="click",
-                            slack_message=f"Clicked {image_name} at ({center.x}, {center.y})"
-                        )
-                except Exception as e:
-                    logger.warning(f"Failed to save debug click image: {e}")
-                logger.info(f"Clicked image: {image_name} at ({center.x}, {center.y})")
-                return True
+                center = click_center(location)
+                if center:
+                    # Save debug screenshot with red dot at click location
+                    try:
+                        debug_screenshot = get_window_screenshot()
+                        if debug_screenshot is not None:
+                            debug_manager.save(
+                                debug_screenshot, center.x, center.y,
+                                label=image_name, action="click",
+                                slack_message=f"Clicked {image_name} at ({center.x}, {center.y})"
+                            )
+                    except Exception as e:
+                        logger.warning(f"Failed to save debug click image: {e}")
+                    logger.info(f"Clicked image: {image_name} at ({center.x}, {center.y})")
+                    return True
         except Exception as e:
             logger.error(f"Error attempting to click {image_name}: {str(e)}")
             break
@@ -156,23 +154,19 @@ def set_commish_home_checkboxes(config: CommishHomeCheckboxConfig, confidence=0.
             raise RuntimeError(f"Unexpected error setting checkbox state for {attr}: {str(e)}") from e
 
 def set_textbox_relative_to_checkbox(checkbox_image, x_offset, y_offset, value, confidence=0.85):
-    location = pyautogui.locateOnScreen(checkbox_image, confidence=confidence)
+    location = locate_on_screen(checkbox_image, confidence=confidence)
     if location:
-        center = pyautogui.center(location)
-        textbox_pos = (center.x + x_offset, center.y + y_offset)
-        logger.info(f"Clicking form field at {textbox_pos} (relative to anchor {checkbox_image}) and setting value '{value}'")
-        pyautogui.click(textbox_pos, duration=0.5)
-        screenshot = get_window_screenshot()
-        debug_manager.save(
-            screenshot, textbox_pos[0], textbox_pos[1],
-            label="form_field", action=f"set_{value}",
-            slack_message=f"Set textbox at {textbox_pos} to value '{value}' (anchor: {checkbox_image})"
-        )
-        time.sleep(0.1)
-        pyautogui.hotkey('ctrl', 'a')
-        pyautogui.press('backspace')
-        pyautogui.write(str(value))
-        time.sleep(0.2)
+        center = click_center(location)
+        if center:
+            textbox_pos = (center.x + x_offset, center.y + y_offset)
+            logger.info(f"Clicking form field at {textbox_pos} (relative to anchor {checkbox_image}) and setting value '{value}'")
+            set_textbox_value(textbox_pos, value)
+            screenshot = get_window_screenshot()
+            debug_manager.save(
+                screenshot, textbox_pos[0], textbox_pos[1],
+                label="form_field", action=f"set_{value}",
+                slack_message=f"Set textbox at {textbox_pos} to value '{value}' (anchor: {checkbox_image})"
+            )
     else:
         logger.warning(f"Checkbox image not found for textbox anchor: {checkbox_image}")
 
@@ -184,7 +178,7 @@ def click_and_verify_next(image_name, next_image_name, max_retries=3, confidence
     for attempt in range(max_retries):
         if find_and_click(image_name):
             time.sleep(2)
-            if pyautogui.locateOnScreen(os.path.join(IMAGES_DIR, next_image_name), confidence=confidence):
+            if locate_on_screen(os.path.join(IMAGES_DIR, next_image_name), confidence=confidence):
                 logger.info(f"Successfully verified {image_name} click - {next_image_name} is visible")
                 return True
             else:

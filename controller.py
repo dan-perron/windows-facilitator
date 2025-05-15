@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from agent.service import find_and_click, simulate_ootp_workflow, check_ootp_window
 from agent.commish_config import CommishHomeCheckboxConfig
+from agent.pyautogui_utils import click_at
 
 def register_routes(app):
     @app.route("/click", methods=["POST"])
@@ -11,8 +12,7 @@ def register_routes(app):
         if x is None or y is None:
             return jsonify({"status": "error", "message": "Missing coordinates"}), 400
         try:
-            import pyautogui
-            pyautogui.click(x, y)
+            click_at(x, y)
             return jsonify({"status": "clicked", "x": x, "y": y})
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500

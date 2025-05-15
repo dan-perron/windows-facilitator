@@ -1,8 +1,8 @@
-import pyautogui
 import threading
 import hashlib
 import logging
 from datetime import datetime
+from agent.pyautogui_utils import get_window, get_window_screenshot
 
 class OOTPScreenshotMonitor:
     def __init__(self, debug_manager, window_title="Out of the Park Baseball 25", interval=10):
@@ -16,15 +16,7 @@ class OOTPScreenshotMonitor:
 
     def _get_window_screenshot(self):
         try:
-            window = pyautogui.getWindowsWithTitle(self.window_title)
-            if not window:
-                return None
-            window = window[0]
-            if not window.isActive:
-                return None
-            region = (window.left, window.top, window.width, window.height)
-            screenshot = pyautogui.screenshot(region=region)
-            return screenshot
+            return get_window_screenshot(self.window_title)
         except Exception as e:
             self.logger.error(f"Monitor: Error getting window screenshot: {str(e)}")
             return None

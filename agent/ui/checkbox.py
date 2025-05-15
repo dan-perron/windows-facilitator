@@ -1,10 +1,10 @@
 import os
 import cv2
 import numpy as np
-import pyautogui
 import time
 import logging
 from agent.debug import DebugScreenshotManager
+from agent.pyautogui_utils import click_at
 
 class CheckboxInteractor:
     def __init__(self, image_dir, debug_manager, confidence=0.95):
@@ -66,9 +66,7 @@ class CheckboxInteractor:
             center_x = x + w // 2
             center_y = y + h // 2
             self.logger.info(f"Clicking to check '{attr}' at center ({center_x}, {center_y})")
-            pyautogui.moveTo(center_x, center_y)
-            time.sleep(0.1)
-            pyautogui.click(duration=0.5)
+            click_at(center_x, center_y)
             self.debug_manager.save(
                 screenshot, center_x, center_y,
                 label=f"{attr}_checked", action="check",
@@ -81,9 +79,7 @@ class CheckboxInteractor:
             center_x = x + w // 2
             center_y = y + h // 2
             self.logger.info(f"Clicking to uncheck '{attr}' at center ({center_x}, {center_y})")
-            pyautogui.moveTo(center_x, center_y)
-            time.sleep(0.1)
-            pyautogui.click(duration=0.5)
+            click_at(center_x, center_y)
             self.debug_manager.save(
                 screenshot, center_x, center_y,
                 label=f"{attr}_unchecked", action="uncheck",
